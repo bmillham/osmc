@@ -32,19 +32,21 @@ DEFAULT_SETTINGSLIST = [
     ('videoplayer', 'useamcodecmpeg2'),
     ('videoplayer', 'useamcodecmpeg4'),
     ('videoplayer', 'useamcodech264'),
-    ("videoscreen", "force422"),
-    ("videoscreen", "screenmode"),
+    ('videoscreen', 'force422'),
+    ('videoscreen', 'screenmode'),
+    ('videoscreen', 'whitelist'),
 ]
+
 
 class GuiParser(object):
 
     def __init__(self, 
-            guifile=DEFAULT_GUIFILE, 
-            stringsfile=DEFAULT_STRINGSFILE,
-            settingsfile=DEFAULT_SETTINGSFILE,
-            settings_list=DEFAULT_SETTINGSLIST,
-            section_subset=None,
-            *args, **kwargs):
+                 guifile=DEFAULT_GUIFILE, 
+                 stringsfile=DEFAULT_STRINGSFILE,
+                 settingsfile=DEFAULT_SETTINGSFILE,
+                 settings_list=DEFAULT_SETTINGSLIST,
+                 section_subset=None,
+                 *args, **kwargs):
 
         self.guifile = guifile
         self.stringsfile = stringsfile
@@ -62,14 +64,12 @@ class GuiParser(object):
 
         self.version = None
 
-
     def set_version(self, *args, **kwargs):
 
         try:
             self.version = self.gui_settings.attrib['version']
-        except:
+        except Exception:
             self.version = '1'
-
 
     def read_strings(self, *args, **kwargs):
 
@@ -98,13 +98,11 @@ class GuiParser(object):
 
         return system_strings
 
-
     def parse_settings(self, *args, **kwargs):
 
         system_settings = {}
 
         kodi_settings = ET.parse(self.settingsfile).getroot()
-
 
         for setting in kodi_settings.findall('.//setting'):
 
@@ -129,10 +127,45 @@ class GuiParser(object):
 
         return None
 
+    def _get_resolution(self, resolution):
+        try:
+            return ("{}x{}".format(
+                int(resolution[0:5]),
+                int(resolution[5:10])),
+                    float(resolution[10:18]),
+                    resolution[19:20])
+        except ValueError:
+            return resolution, None, None
+
+    def _special_cases(self, section, label, text):
+        """ Extra processing on specified sections """
+        if section == "videoscreen.screenmode":
+            res, rate, inter = self._get_resolution(text)
+            try:
+                text = "{} @ {:0.5g}{}".format(res, rate, inter)
+            except ValueError:
+                pass
+            label = "GUI Resolution"
+        if section == "videoscreen.whitelist":
+            wl = {}
+            for r in text.split(","):
+                res, rate, inter = self._get_resolution(r)
+                if res not in wl:
+                    wl[res] = [(rate, inter)]
+                else:
+                    wl[res].append((rate, inter))
+            text = ""
+            for r in sorted(wl, reverse=True):
+                text += "\n  {:>9s}: ".format(r)
+                f = []
+                for rinfo in wl[r]:
+                    f.append("{:0.6g}{}".format(rinfo[0], rinfo[1]))
+                text += ", ".join(f)
+        return label, text
 
     def parse(self, *args, **kwargs):
 
-        if self.gui_settings is None: 
+        if self.gui_settings is None:
             return self.parsed_values
 
         for s in self.settings_list:
@@ -171,18 +204,18 @@ class GuiParser(object):
                 lb = s
             if section.get('options', None):
                 l = section.get('options', {}).get(setting.text, 'failed')
-                t = self.system_strings.get(l, 'Failed to parse: %s' %  l)
+                t = self.system_strings.get(l, 'Failed to parse: %s' % l)
             else:
                 t = setting.text
 
+            lb, t = self._special_cases(sj, lb, t)
+
             setting_formatted = "{}: {}".format(lb, t)
-            if self.system_settings[sj]['default'] != setting.text:
+            default = self.system_settings.get(sj, {}).get('default', {})
+            if default != setting.text:
                 try:
                     setting_formatted += " ===> Default: {}".format(
-                        self.system_strings[
-                            section['options'][
-                                self.system_settings[sj]['default']
-                            ]])
+                        self.system_strings[section['options'][default]])
                 except Exception:
                     setting_formatted += ""  # Unknown default value
             self.parsed_values.append(setting_formatted)
