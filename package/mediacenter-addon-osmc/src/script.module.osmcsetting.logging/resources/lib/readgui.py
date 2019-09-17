@@ -8,7 +8,7 @@ import argparse
 
 
 DEFAULT_GUIFILE = '.kodi/userdata/guisettings.xml'
-DEFAULT_STRINGSFILE = '/usr/share/kodi/addons/resource.language.en_gb/resources/strings.po'
+DEFAULT_STRINGSFILE = '/usr/share/kodi/addons/resource.language.en_gb/resources/strings.po' # noqa E501
 DEFAULT_SETTINGSFILE = '/usr/share/kodi/system/settings/settings.xml'
 
 # A list of tuples of the default information from guisettings to return
@@ -40,8 +40,8 @@ DEFAULT_SETTINGSLIST = [
 
 class GuiParser(object):
 
-    def __init__(self, 
-                 guifile=DEFAULT_GUIFILE, 
+    def __init__(self,
+                 guifile=DEFAULT_GUIFILE,
                  stringsfile=DEFAULT_STRINGSFILE,
                  settingsfile=DEFAULT_SETTINGSFILE,
                  settings_list=DEFAULT_SETTINGSLIST,
@@ -80,17 +80,17 @@ class GuiParser(object):
                 for line in f:
                     if line.startswith('msgctxt'):
                         try:
-                            msgctxt = line.split(' ')[1].strip().split('"')[1][1:]
+                            msgctxt = line.split(' ')[1].strip().split('"')[1][1:] # noqa E501
                         except IndexError:
                             continue
                         for line in f:
                             if line.startswith('msgid'):
                                 try:
-                                    system_strings[msgctxt] = line.split(' ', 1)[1].strip().split('"')[1]
+                                    system_strings[msgctxt] = line.split(' ', 1)[1].strip().split('"')[1] # noqa E501
                                 except IndexError:
-                                    system_strings[msgctxt] = 'string failed - %s' % line
+                                    system_strings[msgctxt] = 'string failed - %s' % line # noqa E501
                                 break
-        except:
+        except Exception:
             tb = traceback.format_exc()
             system_strings['ERROR'] = tb
 
@@ -176,15 +176,15 @@ class GuiParser(object):
             sj = '.'.join(s)
 
             if self.version == '1':
-                if s[0] == 'settings': 
+                if s[0] == 'settings':
                     continue
                 setting = self.gui_settings.find('/'.join(s))
             else:
-                setting = self.gui_settings.find('.//setting[@id="{}"]'.format(sj))
+                setting = self.gui_settings.find('.//setting[@id="{}"]'.format(sj)) # noqa E501
 
             try:
                 setting_text = setting.text.strip()
-            except:
+            except Exception:
                 setting_text = None
 
             if not setting_text:
@@ -194,17 +194,17 @@ class GuiParser(object):
                 section = self.system_settings[sj]
             except:
                 try:
-                    self.parsed_values.append('{}: {}'.format(sj, setting_text))
-                except:
+                    self.parsed_values.append('{}: {}'.format(sj, setting_text)) # noqa E501
+                except Exception:
                     pass
                 continue
             try:
                 lb = self.system_strings[section['label']]
-            except:
+            except Exception:
                 lb = s
             if section.get('options', None):
-                l = section.get('options', {}).get(setting.text, 'failed')
-                t = self.system_strings.get(l, 'Failed to parse: %s' % l)
+                lo = section.get('options', {}).get(setting.text, 'failed')
+                t = self.system_strings.get(lo, 'Failed to parse: %s' % lo)
             else:
                 t = setting.text
 
@@ -222,7 +222,6 @@ class GuiParser(object):
 
         return self.parsed_values
 
-
     def rebuild_settings_list(self, *args, **kwargs):
 
         settings = []
@@ -233,22 +232,22 @@ class GuiParser(object):
             else:
                 for sec in self.section_subset.split(','):
                     try:
-                        settings = settings + self._parent_map(self.gui_settings.find(sec))
-                    except:
-                        settings = settings + ['=' * 40 + '\nBad section: {}\n'.format(sec) + '=' * 40]
+                        settings = settings + self._parent_map(
+                            self.gui_settings.find(sec))
+                    except Exception:
+                        settings = settings + ['=' * 40 + '\nBad section: {}\n'.format(sec) + '=' * 40] # noqa E501
         else:
             for s in self.gui_settings:
                 try:
                     t = tuple(s.attrib['id'].split('.'))
-                    if (self.section_subset != 'all' and t[0] in self.section_subset.split(',')) or self.section_subset == 'all':
+                    if (self.section_subset != 'all' and t[0] in self.section_subset.split(',')) or self.section_subset == 'all': # noqa E501
                         settings.append(t)
-                except:
+                except Exception:
                     pass
 
         self.settings_list = settings
 
         return None
-
 
     def _parent_map(self, gui_settings, *args, **kwargs):
 
@@ -262,22 +261,20 @@ class GuiParser(object):
 
         return parent_map
 
-
     def failure(self, failed_to, *args, **kwargs):
 
         info = (
-                failed_to, 
-                traceback.format_exc(), 
+                failed_to,
+                traceback.format_exc(),
                 str(self.__dict__).replace(',', '\n\t'))
 
         return ['Failed to %s:\n%s\nParser Variables:\n\t%s' % info]
-
 
     def go(self, *args, **kwargs):
 
         try:
             self.gui_settings = ET.parse(self.guifile).getroot()
-        except:
+        except Exception:
             return self.failure(failed_to='read guisettings file')
 
         self.set_version()
@@ -287,12 +284,12 @@ class GuiParser(object):
 
         try:
             self.read_strings()
-        except:
+        except Exception:
             return self.failure(failed_to='parse system strings')
 
         try:
             self.parse_settings()
-        except:
+        except Exception:
             return self.failure(failed_to='parse system settings')
 
         return self.parse()
@@ -302,7 +299,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Humanize guisettings.xml')
     parser.add_argument('--guifile', '-g',
-                        default=os.path.join(os.path.expanduser('~'), DEFAULT_GUIFILE),
+                        default=os.path.join(os.path.expanduser('~'),
+                                             DEFAULT_GUIFILE),
                         help='Name of the guisettings.xml file to parse.')
     parser.add_argument('--stringsfile', '-t',
                         default=DEFAULT_STRINGSFILE,
@@ -317,12 +315,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     gp = GuiParser(
-            guifile=args.guifile, 
-            stringsfile=args.stringsfile, 
+            guifile=args.guifile,
+            stringsfile=args.stringsfile,
             settingsfile=args.settingsfile,
             settings_list=DEFAULT_SETTINGSLIST,
             section_subset=args.all)
 
     for l in gp.go():
         print(l)
-
