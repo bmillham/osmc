@@ -26,6 +26,8 @@ DEFAULT_SETTINGSLIST = [
     ('audiooutput', 'truehdpassthrough'),
     ('videoplayer', 'adjustrefreshrate'),
     ('videoplayer', 'usedisplayasclock'),
+    ('videoplayer', 'quitstereomodeonstop'),
+    ('videoplayer', 'stereoscopicplaybackmode'),
     ('videoplayer', 'stretch43'),
     ('videoplayer', 'hqscalers'),
     ('videoplayer', 'useamcodec'),
@@ -33,6 +35,9 @@ DEFAULT_SETTINGSLIST = [
     ('videoplayer', 'useamcodecmpeg4'),
     ('videoplayer', 'useamcodech264'),
     ('videoscreen', 'force422'),
+    ('videoscreen', 'forcergb'),
+    ('videoscreen', 'limitedrangealm'),
+    ('videoscreen', 'lockhpd'),
     ('videoscreen', 'screenmode'),
     ('videoscreen', 'whitelist'),
 ]
@@ -192,7 +197,7 @@ class GuiParser(object):
 
             try:
                 section = self.system_settings[sj]
-            except:
+            except Exception:
                 try:
                     self.parsed_values.append('{}: {}'.format(sj, setting_text)) # noqa E501
                 except Exception:
@@ -218,6 +223,8 @@ class GuiParser(object):
                         self.system_strings[section['options'][default]])
                 except Exception:
                     setting_formatted += ""  # Unknown default value
+            if self.section_subset == 'all':
+                setting_formatted += " ({})".format(sj)
             self.parsed_values.append(setting_formatted)
 
         return self.parsed_values
