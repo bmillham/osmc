@@ -137,17 +137,16 @@ class GuiParser(object):
             return ("{}x{}".format(
                 int(resolution[0:5]),
                 int(resolution[5:10])),
-                    float(resolution[10:18]),
-                    resolution[19:20])
+                float(resolution[10:18]),
+                resolution[19:20])
         except ValueError:
             return resolution, None, None
 
     def _special_cases(self, section, label, text):
         """ Extra processing on specified sections """
         if section == "videoscreen.screenmode":
-            res, rate, inter = self._get_resolution(text)
             try:
-                text = "{} @ {:0.5g}{}".format(res, rate, inter)
+                text = "{} @ {:0.6g}{}".format(*self._get_resolution(text))
             except ValueError:
                 pass
             label = "GUI Resolution"
@@ -155,16 +154,11 @@ class GuiParser(object):
             wl = {}
             for r in text.split(","):
                 res, rate, inter = self._get_resolution(r)
-                if res not in wl:
-                    wl[res] = [(rate, inter)]
-                else:
-                    wl[res].append((rate, inter))
+                wl.setdefault(res, []).append((rate, inter))
             text = ""
             for r in sorted(wl, reverse=True):
                 text += "\n  {:>9s}: ".format(r)
-                f = []
-                for rinfo in wl[r]:
-                    f.append("{:0.6g}{}".format(rinfo[0], rinfo[1]))
+                f = ["{:0.6g}{}".format(i[0], i[1]) for i in wl[r]]
                 text += ", ".join(f)
         return label, text
 
